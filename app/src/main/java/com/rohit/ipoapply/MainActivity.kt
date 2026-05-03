@@ -1,8 +1,13 @@
 package com.rohit.ipoapply
 
 import android.app.Activity
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputType
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -36,12 +41,12 @@ class MainActivity : Activity() {
         if (list.length() == 0) text("No saved accounts yet")
         for (i in 0 until list.length()) {
             val a = list.getJSONObject(i)
-            button("${a.optString("name", a.optString("demat"))}\n${a.optString("username", a.optString("demat").takeLast(8))}") {
+            row(a.optString("name", a.optString("demat")), a.optString("username", a.optString("demat").takeLast(8))) {
                 showAccount(i)
             }
         }
         button("Add account") { showAdd() }
-        if (list.length() > 0) button("Delete accounts") { showDeleteAccounts() }
+        if (list.length() > 0) button("Delete accounts", secondary = true) { showDeleteAccounts() }
 
         title("Available IPOs")
         val visibleIssues = issues ?: cachedIssues()
@@ -50,8 +55,9 @@ class MainActivity : Activity() {
             for (i in 0 until visibleIssues.length()) {
                 val issue = visibleIssues.getJSONObject(i)
                 val scrip = issue.optString("scrip")
-                text(
-                    "$scrip\n${issue.optString("companyName")}\n${issue.optString("shareTypeName")} ${issue.optString("shareGroupName")}\n${issue.optString("subGroup")}\n${issue.optString("issueOpenDate")}\n${issue.optString("issueCloseDate")}\n${issue.optString("statusName")}"
+                block(
+                    scrip,
+                    "${issue.optString("companyName")}\n${issue.optString("shareTypeName")} ${issue.optString("shareGroupName")}\n${issue.optString("subGroup")}\nOpens: ${issue.optString("issueOpenDate")}\nCloses: ${issue.optString("issueCloseDate")}\n${issue.optString("statusName")}"
                 )
                 button("Apply $scrip") { showApply(issue.toString()) }
             }
@@ -62,7 +68,7 @@ class MainActivity : Activity() {
                 else "Tap Refresh IPO to check latest IPOs"
             )
         }
-        if (list.length() > 0) button("Refresh IPO list") { loadIssuesHome() }
+        if (list.length() > 0) button("Refresh IPO list", secondary = true) { loadIssuesHome() }
         msg("")
     }
 
@@ -73,14 +79,13 @@ class MainActivity : Activity() {
         val checks = ArrayList<CheckBox>()
         for (i in 0 until list.length()) {
             val a = list.getJSONObject(i)
-            val cb = CheckBox(this)
+            val cb = check()
             cb.text = "${a.optString("name", a.optString("demat"))}\n${a.optString("username", a.optString("demat").takeLast(8))}"
-            root.addView(cb)
             checks.add(cb)
         }
-        button("Select all") { for (c in checks) c.isChecked = true }
-        button("Clear selection") { for (c in checks) c.isChecked = false }
-        button("Delete selected accounts") {
+        button("Select all", secondary = true) { for (c in checks) c.isChecked = true }
+        button("Clear selection", secondary = true) { for (c in checks) c.isChecked = false }
+        button("Delete selected accounts", danger = true) {
             val next = JSONArray()
             for (i in 0 until list.length()) if (!checks[i].isChecked) next.put(list.getJSONObject(i))
             if (next.length() == list.length()) {
@@ -90,7 +95,7 @@ class MainActivity : Activity() {
                 showHome()
             }
         }
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("")
     }
 
@@ -110,7 +115,7 @@ class MainActivity : Activity() {
             }
         }
 
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("")
     }
 
@@ -123,18 +128,18 @@ class MainActivity : Activity() {
         val a = list.getJSONObject(index)
         page()
         title(a.optString("name", "Account"))
-        text("Username: ${a.optString("username", a.optString("demat").takeLast(8))}")
-        text("BOID: ${a.optString("demat", a.optString("boid"))}")
-        text("Bank: ${a.optString("bankName")}")
+        field("Username", a.optString("username", a.optString("demat").takeLast(8)))
+        field("BOID", a.optString("demat", a.optString("boid")))
+        field("Bank", a.optString("bankName"))
         secret("CRN", a.optString("crn"))
         secret("PIN", a.optString("pin"))
-        button("Delete") {
+        button("Delete", danger = true) {
             val next = JSONArray()
             for (i in 0 until list.length()) if (i != index) next.put(list.getJSONObject(i))
             prefs.edit().putString("accounts", next.toString()).apply()
             showHome()
         }
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("")
     }
 
@@ -159,11 +164,11 @@ class MainActivity : Activity() {
         if (banks.length() == 0) text("No banks found for this account")
         for (i in 0 until banks.length()) {
             val bank = banks.getJSONObject(i)
-            button(bank.optString("name")) {
+            row(bank.optString("name"), "Use this bank") {
                 loadAccounts(name, boid, pass, token, bank)
             }
         }
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("Choose the bank linked to your CRN")
     }
 
@@ -193,11 +198,11 @@ class MainActivity : Activity() {
         if (accounts.length() == 0) text("No bank accounts found")
         for (i in 0 until accounts.length()) {
             val account = accounts.getJSONObject(i)
-            button("${account.optString("accountNumber")}\n${account.optString("accountTypeName")}") {
+            row(account.optString("accountNumber"), account.optString("accountTypeName")) {
                 showCrn(name, boid, pass, token, bank, account)
             }
         }
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("Choose the account for IPO payment")
     }
 
@@ -211,8 +216,8 @@ class MainActivity : Activity() {
     ) {
         page()
         title("Finish account setup")
-        text("Bank: ${bank.optString("name")}")
-        text("Account: ${account.optString("accountNumber")}")
+        field("Bank", bank.optString("name"))
+        field("Account", account.optString("accountNumber"))
         val crn = input("CRN number")
         val pin = input("Transaction PIN", true)
         eye(pin, "PIN")
@@ -226,7 +231,7 @@ class MainActivity : Activity() {
                 showHome()
             }
         }
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("")
     }
 
@@ -337,7 +342,7 @@ class MainActivity : Activity() {
         val scrip = issue.optString("scrip")
         title("Apply $scrip")
         text(issue.optString("companyName"))
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         work("Checking saved accounts") {
             val rows = JSONArray()
             val id = issue.getInt("companyShareId")
@@ -389,21 +394,20 @@ class MainActivity : Activity() {
         val checks = ArrayList<CheckBox>()
         for (i in 0 until rows.length()) {
             val row = rows.getJSONObject(i)
-            val cb = CheckBox(this)
+            val cb = check()
             cb.text = "${row.optString("name")}\n${row.optString("message")}"
             cb.isEnabled = row.optBoolean("ok")
             cb.isChecked = row.optBoolean("ok")
-            root.addView(cb)
             checks.add(cb)
         }
-        button("Select all") { for (c in checks) if (c.isEnabled) c.isChecked = true }
-        button("Clear selection") { for (c in checks) if (c.isEnabled) c.isChecked = false }
+        button("Select all", secondary = true) { for (c in checks) if (c.isEnabled) c.isChecked = true }
+        button("Clear selection", secondary = true) { for (c in checks) if (c.isEnabled) c.isChecked = false }
         button("Review selected accounts") {
             val picked = JSONArray()
             for (i in 0 until rows.length()) if (checks[i].isChecked && rows.getJSONObject(i).optBoolean("ok")) picked.put(rows.getJSONObject(i))
             if (picked.length() == 0) msg("Select at least one account") else confirmApply(issueText, picked)
         }
-        button("Back") { showHome() }
+        button("Back", secondary = true) { showHome() }
         msg("")
     }
 
@@ -411,11 +415,13 @@ class MainActivity : Activity() {
         page()
         val issue = JSONObject(issueText)
         title("Review application")
-        text(issue.optString("scrip"))
-        text(issue.optString("companyName"))
-        for (i in 0 until rows.length()) text(rows.getJSONObject(i).optString("name"))
+        field("IPO", issue.optString("scrip"))
+        field("Company", issue.optString("companyName"))
+        val names = StringBuilder()
+        for (i in 0 until rows.length()) names.append(rows.getJSONObject(i).optString("name")).append("\n")
+        block("Selected accounts", names.toString().trim())
         button("Submit application") { applyIssue(issueText, rows) }
-        button("Back") { showApplyList(issueText, rows) }
+        button("Back", secondary = true) { showApplyList(issueText, rows) }
         msg("${rows.length()} selected")
     }
 
@@ -455,7 +461,7 @@ class MainActivity : Activity() {
             ui {
                 page()
                 title("Application result")
-                text(out.toString())
+                block("Status", out.toString().trim())
                 button("Done") { showHome() }
                 msg("")
             }
@@ -549,25 +555,107 @@ class MainActivity : Activity() {
     private fun page() {
         root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
+        root.setPadding(dp(16), dp(10), dp(16), dp(24))
+        root.setBackgroundColor(Color.rgb(247, 248, 250))
         val scroll = ScrollView(this)
-        scroll.addView(root)
+        scroll.setBackgroundColor(Color.rgb(247, 248, 250))
+        scroll.addView(
+            root,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        )
         setContentView(scroll)
     }
 
-    private fun title(s: String) = text(s)
+    private fun title(s: String) {
+        val v = TextView(this)
+        v.text = s
+        v.textSize = 20f
+        v.setTextColor(Color.rgb(22, 24, 28))
+        v.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        add(v, top = 12, bottom = 8)
+    }
 
     private fun text(s: String) {
         val v = TextView(this)
         v.text = s
-        root.addView(v)
+        v.textSize = 15f
+        v.setTextColor(Color.rgb(55, 58, 64))
+        v.setLineSpacing(dp(2).toFloat(), 1f)
+        add(v, bottom = 8)
+    }
+
+    private fun block(head: String, body: String) {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(12), dp(10), dp(12), dp(10))
+        box.background = bg(Color.WHITE, Color.rgb(220, 224, 230), 8)
+        val h = TextView(this)
+        h.text = head
+        h.textSize = 16f
+        h.setTextColor(Color.rgb(20, 22, 26))
+        h.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        box.addView(h)
+        val b = TextView(this)
+        b.text = body
+        b.textSize = 14f
+        b.setTextColor(Color.rgb(75, 79, 86))
+        b.setLineSpacing(dp(2).toFloat(), 1f)
+        box.addView(b)
+        add(box, bottom = 8)
+    }
+
+    private fun field(label: String, value: String) {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(12), dp(8), dp(12), dp(8))
+        box.background = bg(Color.WHITE, Color.rgb(226, 229, 234), 8)
+        val l = TextView(this)
+        l.text = label
+        l.textSize = 12f
+        l.setTextColor(Color.rgb(105, 110, 118))
+        box.addView(l)
+        val v = TextView(this)
+        v.text = value.ifBlank { "-" }
+        v.textSize = 16f
+        v.setTextColor(Color.rgb(25, 28, 33))
+        v.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        box.addView(v)
+        add(box, bottom = 8)
+    }
+
+    private fun row(head: String, body: String, click: () -> Unit) {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(12), dp(10), dp(12), dp(10))
+        box.background = bg(Color.WHITE, Color.rgb(205, 211, 219), 8)
+        box.isClickable = true
+        box.setOnClickListener { click() }
+        val h = TextView(this)
+        h.text = head
+        h.textSize = 16f
+        h.setTextColor(Color.rgb(20, 22, 26))
+        h.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        box.addView(h)
+        val b = TextView(this)
+        b.text = body
+        b.textSize = 14f
+        b.setTextColor(Color.rgb(88, 92, 99))
+        box.addView(b)
+        add(box, bottom = 8)
     }
 
     private fun input(hint: String, secret: Boolean = false): EditText {
         val v = EditText(this)
         v.hint = hint
         v.setSingleLine(true)
+        v.textSize = 16f
+        v.minHeight = dp(48)
+        v.setPadding(dp(10), 0, dp(10), 0)
+        v.setTextColor(Color.rgb(20, 22, 26))
+        v.setHintTextColor(Color.rgb(125, 130, 138))
+        v.background = bg(Color.WHITE, Color.rgb(190, 197, 207), 8)
         if (secret) v.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        root.addView(v)
+        add(v, bottom = 8)
         return v
     }
 
@@ -575,46 +663,63 @@ class MainActivity : Activity() {
         val b = Button(this)
         fun hidden() = v.inputType and InputType.TYPE_MASK_VARIATION == InputType.TYPE_TEXT_VARIATION_PASSWORD
         b.text = "Show $label"
+        styleButton(b, secondary = true)
         b.setOnClickListener {
             val isHidden = hidden()
             v.inputType = if (isHidden) InputType.TYPE_CLASS_TEXT else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             v.setSelection(v.text.length)
             b.text = if (isHidden) "Hide $label" else "Show $label"
         }
-        root.addView(b)
+        add(b, bottom = 8)
     }
 
     private fun secret(label: String, value: String) {
         val v = TextView(this)
         v.text = "$label: ${"*".repeat(value.length.coerceAtLeast(4))}"
-        root.addView(v)
+        v.textSize = 15f
+        v.setTextColor(Color.rgb(55, 58, 64))
+        add(v, bottom = 4)
         val b = Button(this)
         b.text = "Show $label"
+        styleButton(b, secondary = true)
         b.setOnClickListener {
             val shown = v.text.toString().endsWith(value)
             v.text = if (shown) "$label: ${"*".repeat(value.length.coerceAtLeast(4))}" else "$label: $value"
             b.text = if (shown) "Show $label" else "Hide $label"
         }
-        root.addView(b)
+        add(b, bottom = 8)
     }
 
-    private fun button(s: String, click: () -> Unit) {
+    private fun button(s: String, secondary: Boolean = false, danger: Boolean = false, click: () -> Unit) {
         val b = Button(this)
         b.text = s
+        styleButton(b, secondary, danger)
         b.setOnClickListener { click() }
-        root.addView(b)
+        add(b, bottom = 8)
+    }
+
+    private fun check(): CheckBox {
+        val c = CheckBox(this)
+        c.textSize = 15f
+        c.setTextColor(Color.rgb(35, 38, 43))
+        c.setPadding(dp(8), dp(8), dp(8), dp(8))
+        c.background = bg(Color.WHITE, Color.rgb(220, 224, 230), 8)
+        add(c, bottom = 8)
+        return c
     }
 
     private fun msg(s: String) {
         status = TextView(this)
         status.text = s
-        root.addView(status)
+        status.textSize = 14f
+        status.setTextColor(Color.rgb(98, 102, 110))
+        add(status, top = 4, bottom = 8)
     }
 
     private fun work(doing: String, block: () -> Unit) {
         msg(doing)
         val spin = ProgressBar(this)
-        root.addView(spin)
+        add(spin, bottom = 8)
         Thread {
             try {
                 block()
@@ -628,6 +733,46 @@ class MainActivity : Activity() {
     }
 
     private fun ui(block: () -> Unit) = runOnUiThread(block)
+
+    private fun styleButton(b: Button, secondary: Boolean = false, danger: Boolean = false) {
+        b.isAllCaps = false
+        b.textSize = 14f
+        b.minHeight = dp(44)
+        b.setPadding(dp(10), 0, dp(10), 0)
+        when {
+            danger -> {
+                b.setTextColor(Color.WHITE)
+                b.background = bg(Color.rgb(154, 38, 43), Color.rgb(132, 32, 37), 8)
+            }
+            secondary -> {
+                b.setTextColor(Color.rgb(45, 49, 55))
+                b.background = bg(Color.rgb(239, 241, 245), Color.rgb(218, 222, 228), 8)
+            }
+            else -> {
+                b.setTextColor(Color.WHITE)
+                b.background = bg(Color.rgb(20, 94, 72), Color.rgb(17, 78, 61), 8)
+            }
+        }
+    }
+
+    private fun add(v: View, top: Int = 0, bottom: Int = 0) {
+        val p = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        p.setMargins(0, dp(top), 0, dp(bottom))
+        root.addView(v, p)
+    }
+
+    private fun bg(fill: Int, stroke: Int, radius: Int): GradientDrawable {
+        val d = GradientDrawable()
+        d.setColor(fill)
+        d.cornerRadius = dp(radius).toFloat()
+        d.setStroke(dp(1), stroke)
+        return d
+    }
+
+    private fun dp(v: Int) = (v * resources.displayMetrics.density + 0.5f).toInt()
 
     private data class Res(val body: String, val token: String?)
 }
