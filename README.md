@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/icon-assets/icon.png" width="96" alt="IPO Apply icon" />
+<img src="app/icon-assets/icon.png" width="128"/>
 
 # IPO Apply
 
