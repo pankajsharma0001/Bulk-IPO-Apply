@@ -55,7 +55,7 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showHome(issues: JSONArray? = null) {
+    private fun showHome(issues: JSONArray? = null, ipoError: String = "") {
         backStack.clear()
         page()
         appTitle("IPO Apply")
@@ -75,7 +75,7 @@ class MainActivity : Activity() {
         sectionAction(
             "Available IPOs",
             "",
-            if (loadingIpo) "" else "refresh"
+            !loadingIpo
         ) { loadIssuesHome() }
         if (visibleIssues != null) {
             if (visibleIssues.length() == 0) empty("No IPOs available")
@@ -85,6 +85,7 @@ class MainActivity : Activity() {
             }
         } else {
             if (loadingIpo) loadingBlock("Checking latest IPOs", "Waiting for Response")
+            else if (ipoError.isNotBlank()) issueStateBlock("Unable to refresh IPOs", ipoError, true)
             else empty(if (list.length() == 0) "Add an account first, then refresh IPO" else "Tap refresh to check latest IPOs")
         }
         msg("")
@@ -372,27 +373,31 @@ class MainActivity : Activity() {
                     return@refresh
                 } catch (e: Exception) {
                     err = friendly(e)
+                    if (isNetwork(e)) break
                 }
             }
             ui {
                 loadingIpo = false
-                showHome()
-                error(err.ifBlank { "Unable to load IPO" })
+                showHome(ipoError = err.ifBlank { "Unable to load IPO" })
             }
         }.start()
     }
 
     private fun loadIssuesWithAccount(list: JSONArray, index: Int): JSONArray {
-        val a = list.getJSONObject(index)
-        try {
-            return fetchIssues(token(a))
-        } catch (_: Exception) {
-            forget(a)
-        }
-        return fetchIssues(login(a, fresh = true))
+        return fetchIssues(list.getJSONObject(index))
     }
 
-    private fun fetchIssues(token: String): JSONArray {
+    private fun fetchIssues(a: JSONObject): JSONArray {
+        try {
+            return fetchIssuesWithToken(token(a))
+        } catch (e: Exception) {
+            if (isNetwork(e)) throw e
+            forget(a)
+        }
+        return fetchIssuesWithToken(login(a, fresh = true))
+    }
+
+    private fun fetchIssuesWithToken(token: String): JSONArray {
         val issues = JSONObject(request2("POST", "$base/companyShare/applicableIssue/", issuePayload(), token).body)
             .optJSONArray("object") ?: JSONArray()
         prefs.edit().putString("issues", issues.toString()).apply()
@@ -614,6 +619,7 @@ class MainActivity : Activity() {
                     var active = try {
                         JSONObject(request("GET", "$base/active/$id", null, token).body)
                     } catch (e: Exception) {
+                        if (isNetwork(e)) throw e
                         forget(a)
                         token = login(a, fresh = true)
                         JSONObject(request("GET", "$base/active/$id", null, token).body)
@@ -631,7 +637,14 @@ class MainActivity : Activity() {
                         .put("companyShareId", id.toString())
                         .put("bankId", a.getInt("bankId").toString())
                         .toString()
-                    val res = JSONObject(request("POST", "$base/applicantForm/share/apply", payload, token).body)
+                    val res = try {
+                        JSONObject(request("POST", "$base/applicantForm/share/apply", payload, token).body)
+                    } catch (e: Exception) {
+                        if (isNetwork(e) || !isAuthProblem(e)) throw e
+                        forget(a)
+                        token = login(a, fresh = true)
+                        JSONObject(request("POST", "$base/applicantForm/share/apply", payload, token).body)
+                    }
                     out.append(name).append(" - ").append(scrip).append(" - ").append(res.optString("message", "done")).append("\n")
                 } catch (e: Exception) {
                     out.append(name).append(" - ").append(scrip).append(" - ").append(friendly(e)).append("\n")
@@ -733,7 +746,7 @@ class MainActivity : Activity() {
         c.setRequestProperty("Origin", "https://meroshare.cdsc.com.np")
         c.setRequestProperty("Pragma", "no-cache")
         c.setRequestProperty("Referer", "https://meroshare.cdsc.com.np/")
-        c.setRequestProperty("User-Agent", "Mozilla/5.0")
+        c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36")
         if (!token.isNullOrBlank()) c.setRequestProperty("Authorization", token)
         if (payload != null) {
             c.doOutput = true
@@ -801,7 +814,7 @@ class MainActivity : Activity() {
         return noteView
     }
 
-    private fun sectionAction(s: String, note: String = "", icon: String, click: () -> Unit) {
+    private fun sectionAction(s: String, note: String = "", showAction: Boolean, click: () -> Unit) {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.HORIZONTAL
         box.gravity = Gravity.CENTER_VERTICAL
@@ -821,12 +834,17 @@ class MainActivity : Activity() {
                 setMargins(0, 0, dp(8), 0)
             })
         }
-        if (icon.isNotBlank()) {
+        if (showAction) {
             refreshButton(R.drawable.ic_refresh_1, click).also {
                 box.addView(it, LinearLayout.LayoutParams(dp(38), dp(38)).apply {
                     setMargins(0, 0, dp(8), 0)
                 })
             }
+        } else {
+            val spacer = View(this)
+            box.addView(spacer, LinearLayout.LayoutParams(dp(38), dp(38)).apply {
+                setMargins(0, 0, dp(8), 0)
+            })
         }
         add(box, top = 14, bottom = 9)
     }
@@ -1015,25 +1033,44 @@ class MainActivity : Activity() {
     }
 
     private fun loadingBlock(head: String, body: String) {
+        issueStateBlock(head, body, false)
+    }
+
+    private fun issueStateBlock(head: String, body: String, bad: Boolean) {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.HORIZONTAL
         box.gravity = Gravity.CENTER_VERTICAL
         box.setPadding(dp(14), dp(13), dp(14), dp(13))
-        box.background = bg(Color.WHITE, Color.rgb(205, 219, 214), 12)
-        val spin = ProgressBar(this)
-        box.addView(spin, LinearLayout.LayoutParams(dp(34), dp(34)))
+        box.background = bg(
+            if (bad) Color.rgb(255, 248, 248) else Color.WHITE,
+            if (bad) Color.rgb(232, 190, 194) else Color.rgb(205, 219, 214),
+            12
+        )
+        if (bad) {
+            val mark = TextView(this)
+            mark.text = "!"
+            mark.gravity = Gravity.CENTER
+            mark.textSize = 16f
+            mark.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+            mark.setTextColor(Color.rgb(125, 35, 40))
+            mark.background = bg(Color.rgb(255, 238, 239), Color.rgb(232, 190, 194), 17)
+            box.addView(mark, LinearLayout.LayoutParams(dp(34), dp(34)))
+        } else {
+            val spin = ProgressBar(this)
+            box.addView(spin, LinearLayout.LayoutParams(dp(34), dp(34)))
+        }
         val copy = LinearLayout(this)
         copy.orientation = LinearLayout.VERTICAL
         val h = TextView(this)
         h.text = head
         h.textSize = 16f
-        h.setTextColor(Color.rgb(20, 94, 72))
+        h.setTextColor(if (bad) Color.rgb(125, 35, 40) else Color.rgb(20, 94, 72))
         h.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
         copy.addView(h)
         val b = TextView(this)
         b.text = body
         b.textSize = 14f
-        b.setTextColor(Color.rgb(88, 96, 102))
+        b.setTextColor(if (bad) Color.rgb(125, 55, 58) else Color.rgb(88, 96, 102))
         copy.addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             setMargins(0, dp(2), 0, 0)
         })
@@ -1445,10 +1482,22 @@ class MainActivity : Activity() {
 
     private fun friendly(e: Exception): String {
         return when (e) {
-            is UnknownHostException -> "Network unavailable. Check Wi-Fi or mobile data."
-            is IOException -> "Network error. Check your connection and try again."
+            is UnknownHostException -> "Network Error"
+            is IOException -> "Network Error"
             else -> e.message ?: "Error"
         }
+    }
+
+    private fun isNetwork(e: Exception) = e is UnknownHostException || e is IOException
+
+    private fun isAuthProblem(e: Exception): Boolean {
+        val m = (e.message ?: "").lowercase(Locale.US)
+        return m.contains("token") ||
+            m.contains("auth") ||
+            m.contains("unauthorized") ||
+            m.contains("expired") ||
+            m.contains("401") ||
+            m.contains("403")
     }
 
     private fun styleButton(b: Button, secondary: Boolean = false, danger: Boolean = false) {

@@ -1,0 +1,9 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="400dp"
+    android:insetTop="400dp"
+    android:insetRight="400dp"
+    android:insetBottom="400dp">
+    <bitmap
+        android:src="@drawable/icon"
+        android:gravity="center" />
+</inset>
