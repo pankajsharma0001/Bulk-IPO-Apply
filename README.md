@@ -4,7 +4,7 @@
 
 # IPO Apply
 
-**A tiny native Android app for managing MeroShare IPO applications across saved accounts.**
+**A tiny native Android app for applying IPO from multiple accounts in one click.**
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-145E48?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-11%2B-1BAE66?style=for-the-badge&logo=android&logoColor=white)
