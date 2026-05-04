@@ -16,6 +16,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -74,7 +75,7 @@ class MainActivity : Activity() {
         sectionAction(
             "Available IPOs",
             "",
-            if (loadingIpo) "" else "Refresh"
+            if (loadingIpo) "" else "refresh"
         ) { loadIssuesHome() }
         if (visibleIssues != null) {
             if (visibleIssues.length() == 0) empty("No IPOs available")
@@ -821,20 +822,24 @@ class MainActivity : Activity() {
             })
         }
         if (icon.isNotBlank()) {
-            val b = TextView(this)
-            b.text = icon
-            b.textSize = 13f
-            b.includeFontPadding = false
-            b.gravity = Gravity.CENTER
-            b.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
-            b.setTextColor(Color.rgb(20, 94, 72))
-            b.setPadding(dp(12), 0, dp(12), 0)
-            b.background = press(Color.rgb(246, 250, 248), Color.rgb(190, 207, 201), 12, Color.rgb(231, 242, 237))
-            b.isClickable = true
-            b.setOnClickListener { click() }
-            box.addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)))
+            refreshButton(R.drawable.ic_refresh_1, click).also {
+                box.addView(it, LinearLayout.LayoutParams(dp(38), dp(38)).apply {
+                    setMargins(0, 0, dp(8), 0)
+                })
+            }
         }
         add(box, top = 14, bottom = 9)
+    }
+
+    private fun refreshButton(res: Int, click: () -> Unit): ImageView {
+        val b = ImageView(this)
+        b.setImageResource(res)
+        b.setColorFilter(Color.rgb(20, 94, 72))
+        b.setPadding(dp(8), dp(8), dp(8), dp(8))
+        b.background = press(Color.rgb(246, 250, 248), Color.rgb(190, 207, 201), 12, Color.rgb(231, 242, 237))
+        b.isClickable = true
+        b.setOnClickListener { click() }
+        return b
     }
 
     private fun title(s: String) {
