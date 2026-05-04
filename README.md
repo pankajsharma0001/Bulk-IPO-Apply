@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/src/main/res/drawable/icon.png" width="96" alt="IPO Apply icon" />
+<img src="app/icon-assets/icon.png" width="96" alt="IPO Apply icon" />
 
 # IPO Apply
 
@@ -73,16 +73,16 @@ The goal is not to be flashy. The goal is to feel quick, clear, and dependable o
 
 ## Tech Stack
 
-| Area | Choice |
-|---|---|
-| Language | Kotlin |
-| UI | Native Android Views |
-| Networking | `HttpURLConnection` |
-| Storage | `SharedPreferences` |
-| JSON | `org.json` |
-| Min SDK | 23 |
-| Target SDK | 36 |
-| Package | `com.rohit.ipoapply` |
+| Area       | Choice               |
+| ---------- | -------------------- |
+| Language   | Kotlin               |
+| UI         | Native Android Views |
+| Networking | `HttpURLConnection`  |
+| Storage    | `SharedPreferences`  |
+| JSON       | `org.json`           |
+| Min SDK    | 23                   |
+| Target SDK | 36                   |
+| Package    | `com.rohit.ipoapply` |
 
 ---
 
