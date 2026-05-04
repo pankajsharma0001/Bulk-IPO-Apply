@@ -1,7 +1,6 @@
 <div align="center">
 
 <img src="app/icon-assets/icon.png" width="128" alt="IPO Apply icon" />
-
 # IPO Apply
 
 **A tiny native Android app for managing MeroShare IPO applications across saved accounts.**
