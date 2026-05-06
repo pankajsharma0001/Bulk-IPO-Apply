@@ -90,6 +90,40 @@ The goal is not to be flashy. The goal is to feel quick, clear, and dependable o
 
 Open the project in Android Studio and let Gradle sync.
 
+Release builds use a local signing file that is intentionally **not committed**:
+
+- `keystore.properties`
+- `keystores/upload-keystore.p12`
+
+Both are ignored by Git, so each machine needs its own local copy.
+
+`keystore.properties` should look like this:
+
+```properties
+storeFile=keystores/upload-keystore.p12
+storePassword=your_store_password
+keyAlias=upload
+keyPassword=your_key_password
+```
+
+For this repo's current PKCS12 setup, `storePassword` and `keyPassword` are usually the same.
+
+If you need to generate a fresh upload keystore, a command like this works:
+
+```powershell
+keytool -genkeypair `
+  -v `
+  -keystore keystores/upload-keystore.p12 `
+  -storetype PKCS12 `
+  -alias upload `
+  -keyalg RSA `
+  -keysize 2048 `
+  -validity 10000 `
+  -storepass YOUR_PASSWORD `
+  -keypass YOUR_PASSWORD `
+  -dname "CN=Your Name, OU=IPO Apply, O=IPO Apply, L=Kathmandu, ST=Bagmati, C=NP"
+```
+
 To build from terminal:
 
 ```powershell
@@ -102,7 +136,7 @@ Release APK output:
 app/build/outputs/apk/release/app-release.apk
 ```
 
-There is also a helper script:
+There is also a helper script in the repo:
 
 ```powershell
 .\apk.ps1
