@@ -135,13 +135,6 @@ Release APK output:
 ```text
 app/build/outputs/apk/release/app-release.apk
 ```
-
-There is also a helper script in the repo:
-
-```powershell
-.\apk.ps1
-```
-
 ---
 
 ## Project Structure
