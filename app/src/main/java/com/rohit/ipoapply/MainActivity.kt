@@ -40,6 +40,8 @@ class MainActivity : Activity() {
     private val backStack = ArrayList<() -> Unit>()
     private val tokens = HashMap<String, String>()
 
+    private data class SelectionHeader(val note: TextView, val mark: TextView)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showHome()
@@ -416,16 +418,20 @@ class MainActivity : Activity() {
         val id = issue.getInt("companyShareId")
         title("Apply $scrip")
         text(clean(issue.optString("companyName")))
-        val checking = section("Accounts", "Checking saved accounts")
+        val header = selectionSection("Accounts", "Checking saved accounts")
+        header.mark.visibility = View.GONE
         val screen = root
         val selected = ArrayList<Boolean>()
         val cards = ArrayList<LinearLayout>()
         val notes = ArrayList<TextView>()
         val rows = ArrayList<JSONObject>()
-        var toggle: Button? = null
         var review: Button? = null
         var done = 0
         var firstError = ""
+        header.mark.setOnClickListener {
+            toggleSelection(selected, cards, notes, false)
+            syncSelectionHeader(header, selected, done, list.length())
+        }
         for (i in 0 until list.length()) {
             val a = list.getJSONObject(i)
             val preview = JSONObject()
@@ -450,10 +456,10 @@ class MainActivity : Activity() {
                         card.setOnClickListener {
                             selected[cardIndex] = !selected[cardIndex]
                             syncApplyCard(cards[cardIndex], notes[cardIndex], selected[cardIndex])
-                            toggle?.text = if (selected.isNotEmpty() && selected.all { it }) "Clear selection" else "Select all"
+                            syncSelectionHeader(header, selected, done, list.length())
                         }
                         syncApplyCard(card, note, true)
-                        toggle?.visibility = View.VISIBLE
+                        header.mark.visibility = View.VISIBLE
                         review?.visibility = View.VISIBLE
                     } else {
                         card.isClickable = false
@@ -462,9 +468,8 @@ class MainActivity : Activity() {
                         syncApplyStatus(card, note, message)
                     }
                     done++
-                    toggle?.text = if (selected.isNotEmpty() && selected.all { it }) "Clear selection" else "Select all"
+                    syncSelectionHeader(header, selected, done, list.length())
                     if (done == list.length()) {
-                        checking?.visibility = View.GONE
                         if (rows.isEmpty()) {
                             if (firstError.isBlank()) msg("") else error(firstError)
                         } else {
@@ -474,8 +479,6 @@ class MainActivity : Activity() {
                 }
             }.start()
         }
-        toggle = selectToggle(selected, cards, notes, false)
-        toggle.visibility = if (rows.isEmpty()) View.GONE else View.VISIBLE
         review = Button(this)
         review.text = "Apply selected accounts"
         styleButton(review)
@@ -524,7 +527,7 @@ class MainActivity : Activity() {
         row.put("username", detail.optString("username").ifBlank { demat.takeLast(8) })
         row.put("token", token)
         val seen = issueFor(token, id)
-        if (seen.optString("action").equals("inProcess", true)) {
+        if (isAlreadyAppliedAction(seen.optString("action"))) {
             row.put("ok", false)
             row.put("message", "Already applied")
         } else {
@@ -545,17 +548,20 @@ class MainActivity : Activity() {
         return JSONObject()
     }
 
+    private fun isAlreadyAppliedAction(action: String): Boolean {
+        return action.equals("inProcess", true) || action.equals("edit", true)
+    }
+
     private fun showApplyList(issueText: String, rows: JSONArray) {
         page()
         val issue = JSONObject(issueText)
         title("Apply ${issue.optString("scrip")}")
         text(clean(issue.optString("companyName")))
-        section("Accounts", "${rows.length()} checked")
+        val header = selectionSection("Accounts", "${rows.length()} checked")
         val selected = ArrayList<Boolean>()
         val cards = ArrayList<LinearLayout>()
         val notes = ArrayList<TextView>()
         val eligible = ArrayList<Int>()
-        var toggle: Button? = null
         var blocked = 0
         for (i in 0 until rows.length()) {
             val row = rows.getJSONObject(i)
@@ -569,7 +575,7 @@ class MainActivity : Activity() {
                 card.setOnClickListener {
                     selected[cardIndex] = !selected[cardIndex]
                     syncApplyCard(cards[cardIndex], notes[cardIndex], selected[cardIndex])
-                    toggle?.text = if (selected.isNotEmpty() && selected.all { it }) "Clear selection" else "Select all"
+                    syncSelectionHeader(header, selected, rows.length(), rows.length())
                 }
                 eligible.add(i)
             } else {
@@ -578,13 +584,18 @@ class MainActivity : Activity() {
             }
         }
         if (cards.isNotEmpty()) {
-            toggle = selectToggle(selected, cards, notes, false)
+            header.mark.setOnClickListener {
+                toggleSelection(selected, cards, notes, false)
+                syncSelectionHeader(header, selected, rows.length(), rows.length())
+            }
+            syncSelectionHeader(header, selected, rows.length(), rows.length())
             button("Apply selected accounts") {
                 val picked = JSONArray()
                 for (i in 0 until eligible.size) if (selected[i]) picked.put(rows.getJSONObject(eligible[i]))
                 if (picked.length() == 0) error("Select at least one account") else open({ showApplyList(issueText, rows) }) { confirmApply(issueText, picked) }
             }
         } else {
+            header.mark.visibility = View.GONE
             empty(if (blocked == 0) "No saved accounts found" else "All saved accounts are already applied or cannot apply")
         }
         msg("")
@@ -594,13 +605,14 @@ class MainActivity : Activity() {
         page()
         val issue = JSONObject(issueText)
         title("Review application")
-        field("IPO", issue.optString("scrip"))
-        field("Company", issue.optString("companyName"))
-        val names = StringBuilder()
-        for (i in 0 until rows.length()) names.append(rows.getJSONObject(i).optString("name")).append("\n")
-        block("Selected accounts", names.toString().trim())
+        reviewIssueCard(issue, rows.length())
+        section("Selected accounts", "${rows.length()} selected")
+        for (i in 0 until rows.length()) {
+            val row = rows.getJSONObject(i)
+            accountSummaryCard(row.optString("name"), row.optString("username"))
+        }
         button("Submit application") { applyIssue(issueText, rows) }
-        msg("${rows.length()} selected")
+        msg("")
     }
 
     private fun applyIssue(issueText: String, rows: JSONArray) {
@@ -608,7 +620,7 @@ class MainActivity : Activity() {
             val issue = JSONObject(issueText)
             val id = issue.getInt("companyShareId")
             val scrip = issue.optString("scrip")
-            val out = StringBuilder()
+            val results = JSONArray()
             val list = saved()
             for (i in 0 until rows.length()) {
                 val row = rows.getJSONObject(i)
@@ -645,16 +657,31 @@ class MainActivity : Activity() {
                         token = login(a, fresh = true)
                         JSONObject(request("POST", "$base/applicantForm/share/apply", payload, token).body)
                     }
-                    out.append(name).append(" - ").append(scrip).append(" - ").append(res.optString("message", "done")).append("\n")
+                    results.put(
+                        JSONObject()
+                            .put("name", name)
+                            .put("username", a.optString("username", a.optString("demat").takeLast(8)))
+                            .put("ok", true)
+                            .put("message", res.optString("message", "Applied successfully"))
+                    )
                 } catch (e: Exception) {
-                    out.append(name).append(" - ").append(scrip).append(" - ").append(friendly(e)).append("\n")
+                    results.put(
+                        JSONObject()
+                            .put("name", name)
+                            .put("username", a.optString("username", a.optString("demat").takeLast(8)))
+                            .put("ok", false)
+                            .put("message", friendly(e))
+                    )
                 }
             }
             ui {
                 backStack.add { showHome() }
                 page()
                 title("Application result")
-                block("Status", out.toString().trim())
+                resultSummary(issue, results)
+                for (i in 0 until results.length()) {
+                    resultCard(results.getJSONObject(i))
+                }
                 button("Done") { showHome() }
                 msg("")
             }
@@ -814,6 +841,69 @@ class MainActivity : Activity() {
         return noteView
     }
 
+    private fun selectionSection(s: String, note: String): SelectionHeader {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.HORIZONTAL
+        box.gravity = Gravity.CENTER_VERTICAL
+        val h = TextView(this)
+        h.text = s
+        h.textSize = 21f
+        h.setTextColor(Color.rgb(20, 22, 26))
+        h.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        box.addView(h, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val n = TextView(this)
+        n.text = note
+        n.textSize = 13f
+        n.setTextColor(Color.rgb(99, 105, 113))
+        n.gravity = Gravity.CENTER_VERTICAL or Gravity.RIGHT
+        box.addView(n, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, 0, dp(10), 0)
+        })
+        val mark = TextView(this)
+        mark.text = ""
+        mark.textSize = 14f
+        mark.gravity = Gravity.CENTER
+        mark.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        mark.isClickable = true
+        box.addView(mark, LinearLayout.LayoutParams(dp(26), dp(26)).apply {
+            setMargins(0, 0, dp(15), 0)
+        })
+        val header = SelectionHeader(n, mark)
+        syncSelectionHeader(header, ArrayList<Boolean>(), 0, 0)
+        add(box, top = 14, bottom = 9)
+        return header
+    }
+
+    private fun syncSelectionHeader(header: SelectionHeader, selected: ArrayList<Boolean>, checked: Int, total: Int) {
+        val selectedCount = selected.count { it }
+        header.note.text = when {
+            total > 0 && checked < total -> "$checked of $total checked"
+            total > 0 -> "$selectedCount selected"
+            else -> "Checking saved accounts"
+        }
+        val all = selected.isNotEmpty() && selected.all { it }
+        header.mark.text = if (all) "\u2713" else ""
+        header.mark.setTextColor(if (all) Color.WHITE else Color.rgb(20, 94, 72))
+        header.mark.background = if (all) {
+            bg(Color.rgb(20, 94, 72), Color.rgb(20, 94, 72), 7)
+        } else {
+            bg(Color.TRANSPARENT, Color.rgb(20, 94, 72), 7)
+        }
+    }
+
+    private fun toggleSelection(
+        selected: ArrayList<Boolean>,
+        cards: ArrayList<LinearLayout>,
+        notes: ArrayList<TextView>,
+        deleteMode: Boolean
+    ) {
+        val next = !(selected.isNotEmpty() && selected.all { it })
+        for (i in 0 until selected.size) {
+            selected[i] = next
+            if (deleteMode) syncDeleteCard(cards[i], notes[i], next) else syncApplyCard(cards[i], notes[i], next)
+        }
+    }
+
     private fun sectionAction(s: String, note: String = "", showAction: Boolean, click: () -> Unit) {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.HORIZONTAL
@@ -897,6 +987,142 @@ class MainActivity : Activity() {
         box.addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             setMargins(0, dp(4), 0, 0)
         })
+        add(box, bottom = 8)
+    }
+
+    private fun reviewIssueCard(issue: JSONObject, selectedCount: Int) {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(15), dp(14), dp(15), dp(14))
+        box.background = bg(Color.WHITE, Color.rgb(190, 207, 201), 12)
+        val top = LinearLayout(this)
+        top.orientation = LinearLayout.HORIZONTAL
+        top.gravity = Gravity.CENTER_VERTICAL
+        val left = LinearLayout(this)
+        left.orientation = LinearLayout.VERTICAL
+        val scrip = TextView(this)
+        scrip.text = issue.optString("scrip", "IPO")
+        scrip.textSize = 22f
+        scrip.setTextColor(Color.rgb(18, 77, 60))
+        scrip.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        left.addView(scrip)
+        val company = TextView(this)
+        company.text = clean(issue.optString("companyName"))
+        company.textSize = 14f
+        company.setTextColor(Color.rgb(55, 58, 64))
+        company.setLineSpacing(dp(2).toFloat(), 1f)
+        left.addView(company, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, dp(3), dp(8), 0)
+        })
+        top.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val count = TextView(this)
+        count.text = "$selectedCount selected"
+        count.textSize = 12f
+        count.setTextColor(Color.WHITE)
+        count.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        count.setPadding(dp(9), dp(4), dp(9), dp(4))
+        count.background = bg(Color.rgb(20, 94, 72), Color.rgb(20, 94, 72), 12)
+        top.addView(count)
+        box.addView(top)
+        add(box, bottom = 10)
+    }
+
+    private fun accountSummaryCard(nameText: String, usernameText: String) {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.HORIZONTAL
+        box.gravity = Gravity.CENTER_VERTICAL
+        box.setPadding(dp(15), dp(12), dp(15), dp(12))
+        box.background = bg(Color.WHITE, Color.rgb(211, 218, 226), 12)
+        val left = LinearLayout(this)
+        left.orientation = LinearLayout.VERTICAL
+        val name = TextView(this)
+        name.text = nameText
+        name.textSize = 16f
+        name.setTextColor(Color.rgb(20, 22, 26))
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        left.addView(name)
+        val user = TextView(this)
+        user.text = usernameText
+        user.textSize = 14f
+        user.setTextColor(Color.rgb(88, 92, 99))
+        left.addView(user, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, dp(3), 0, 0)
+        })
+        box.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        add(box, bottom = 8)
+    }
+
+    private fun resultSummary(issue: JSONObject, results: JSONArray) {
+        var ok = 0
+        for (i in 0 until results.length()) if (results.getJSONObject(i).optBoolean("ok")) ok++
+        val failed = results.length() - ok
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(15), dp(14), dp(15), dp(14))
+        box.background = bg(Color.WHITE, Color.rgb(190, 207, 201), 12)
+        val statusText = when {
+            failed == 0 -> "All applications completed"
+            ok == 0 -> "No applications completed"
+            else -> "$ok completed, $failed need attention"
+        }
+        val statusColor = if (failed == 0) Color.rgb(20, 94, 72) else Color.rgb(116, 78, 42)
+        val h = TextView(this)
+        h.text = statusText
+        h.textSize = 18f
+        h.setTextColor(statusColor)
+        h.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        box.addView(h)
+        val b = TextView(this)
+        b.text = "${issue.optString("scrip", "IPO")} - ${clean(issue.optString("companyName"))}"
+        b.textSize = 14f
+        b.setTextColor(Color.rgb(75, 79, 86))
+        b.setLineSpacing(dp(2).toFloat(), 1f)
+        box.addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, dp(4), 0, 0)
+        })
+        add(box, bottom = 10)
+    }
+
+    private fun resultCard(result: JSONObject) {
+        val ok = result.optBoolean("ok")
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.HORIZONTAL
+        box.gravity = Gravity.CENTER_VERTICAL
+        box.setPadding(dp(15), dp(13), dp(15), dp(13))
+        box.background = if (ok) {
+            bg(Color.rgb(247, 252, 249), Color.rgb(181, 218, 196), 12)
+        } else {
+            bg(Color.rgb(255, 249, 240), Color.rgb(231, 198, 151), 12)
+        }
+        val left = LinearLayout(this)
+        left.orientation = LinearLayout.VERTICAL
+        val name = TextView(this)
+        name.text = result.optString("name")
+        name.textSize = 16f
+        name.setTextColor(Color.rgb(20, 22, 26))
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        left.addView(name)
+        val detail = TextView(this)
+        detail.text = if (ok) {
+            result.optString("username")
+        } else {
+            clean(result.optString("message").ifBlank { "Failed" })
+        }
+        detail.textSize = 13f
+        detail.setTextColor(if (ok) Color.rgb(88, 92, 99) else Color.rgb(116, 78, 42))
+        detail.setLineSpacing(dp(2).toFloat(), 1f)
+        left.addView(detail, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, dp(3), 0, 0)
+        })
+        box.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val mark = TextView(this)
+        mark.text = if (ok) "\u2713" else "!"
+        mark.textSize = if (ok) 22f else 20f
+        mark.gravity = Gravity.CENTER
+        mark.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        mark.setTextColor(if (ok) Color.rgb(20, 94, 72) else Color.rgb(154, 38, 43))
+        mark.background = null
+        box.addView(mark, LinearLayout.LayoutParams(dp(26), dp(26)))
         add(box, bottom = 8)
     }
 
