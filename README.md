@@ -30,37 +30,6 @@ The app is intentionally built with a **minimum-size, native-first** philosophy:
 
 ---
 
-## Features
-
-<table>
-  <tr>
-    <td><b>Multiple accounts</b></td>
-    <td>Save and manage multiple MeroShare accounts on-device.</td>
-  </tr>
-  <tr>
-    <td><b>Latest IPO list</b></td>
-    <td>Fetch available IPOs from MeroShare when the app opens or when refreshed.</td>
-  </tr>
-  <tr>
-    <td><b>Already-applied status</b></td>
-    <td>Shows a clear status when an IPO is already applied for an account.</td>
-  </tr>
-  <tr>
-    <td><b>Selective apply</b></td>
-    <td>Choose which saved accounts should apply for a selected IPO.</td>
-  </tr>
-  <tr>
-    <td><b>Account details</b></td>
-    <td>View saved BOID, bank, CRN, and PIN with sensitive fields hidden by default.</td>
-  </tr>
-  <tr>
-    <td><b>Native UX</b></td>
-    <td>Clean loading, error, empty, selection, and confirmation states without UI dependencies.</td>
-  </tr>
-</table>
-
----
-
 ## Design Principles
 
 > Small, fast, native, practical.
@@ -141,35 +110,6 @@ There is also a helper script in the repo:
 ```powershell
 .\apk.ps1
 ```
-
----
-
-## Project Structure
-
-```text
-Bulk-IPO-Apply/
-├─ app/
-│  ├─ src/main/
-│  │  ├─ java/com/rohit/ipoapply/MainActivity.kt
-│  │  ├─ res/drawable/
-│  │  ├─ res/mipmap-anydpi-v26/
-│  │  └─ AndroidManifest.xml
-├─ gradle/
-├─ build.gradle.kts
-├─ settings.gradle.kts
-└─ README.md
-```
-
----
-
-## Notes
-
-- Saved account data is stored locally on the device.
-- Tokens are reused in memory during the app session where possible.
-- The app fetches the latest IPO list on launch when saved accounts exist.
-- Network errors are shown in-app with user-friendly messages.
-
----
 
 ## Disclaimer
 
