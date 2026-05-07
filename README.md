@@ -111,6 +111,35 @@ There is also a helper script in the repo:
 .\apk.ps1
 ```
 
+---
+
+## Project Structure
+
+```text
+Bulk-IPO-Apply/
+|-- app/
+|   |-- src/main/
+|   |   |-- java/com/rohit/ipoapply/MainActivity.kt
+|   |   |-- res/drawable/
+|   |   |-- res/mipmap-anydpi-v26/
+|   |   `-- AndroidManifest.xml
+|-- gradle/
+|-- build.gradle.kts
+|-- settings.gradle.kts
+`-- README.md
+```
+
+---
+
+## Notes
+
+- Saved account data is stored locally on the device.
+- Tokens are reused in memory during the app session where possible.
+- The app fetches the latest IPO list on launch when saved accounts exist.
+- Network errors are shown in-app with user-friendly messages.
+
+---
+
 ## Disclaimer
 
 This is an independent project and is not affiliated with CDSC, MeroShare, or any official financial institution. Use carefully and verify applications through official channels when needed.
