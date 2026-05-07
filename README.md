@@ -36,48 +36,48 @@ The app is intentionally built with a **minimum-size, native-first** philosophy:
 
 This project avoids heavy frameworks and favors direct Android platform APIs. Most UI is generated from Kotlin using `LinearLayout`, `TextView`, `Button`, `ImageView`, and `GradientDrawable`.
 
-The goal is not to be flashy. The goal is to feel quick, clear, and dependable on real devices.
+---
+
+## Preview
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="assets/home.jpg" width="280" alt="Simple Patro home screen" />
+        <br />
+        <sub><strong>Home</strong></sub>
+      </td>
+    </tr>
+  </table>
+</div>
+
+## How to Build
+
+### What you need
+
+- [Java JDK 11 or higher](https://adoptium.net/) installed and added to PATH
+- The signing files set up (see Step 1 below)
 
 ---
 
-## Tech Stack
+### Step 1 — Set up your signing files
 
-| Area       | Choice               |
-| ---------- | -------------------- |
-| Language   | Kotlin               |
-| UI         | Native Android Views |
-| Networking | `HttpURLConnection`  |
-| Storage    | `SharedPreferences`  |
-| JSON       | `org.json`           |
-| Min SDK    | 23                   |
-| Target SDK | 36                   |
-| Package    | `com.rohit.ipoapply` |
+Two secret files are **not included in the repo** and must be set up on every new machine:
 
----
+- `keystores/upload-keystore.p12` — the keystore file
+- `keystore.properties` — the passwords and path for the keystore
 
-## Build
-
-Open the project in Android Studio and let Gradle sync.
-
-Release builds use a local signing file that is intentionally **not committed**:
-
-- `keystore.properties`
-- `keystores/upload-keystore.p12`
-
-Both are ignored by Git, so each machine needs its own local copy.
-
-`keystore.properties` should look like this:
+Create `keystore.properties` in the root of the project:
 
 ```properties
 storeFile=keystores/upload-keystore.p12
-storePassword=your_store_password
+storePassword=your_password
 keyAlias=upload
-keyPassword=your_key_password
+keyPassword=your_password
 ```
 
-For this repo's current PKCS12 setup, `storePassword` and `keyPassword` are usually the same.
-
-If you need to generate a fresh upload keystore, a command like this works:
+**Don't have a keystore yet?** Run this once in PowerShell to generate one:
 
 ```powershell
 keytool -genkeypair `
@@ -93,50 +93,23 @@ keytool -genkeypair `
   -dname "CN=Your Name, OU=IPO Apply, O=IPO Apply, L=Kathmandu, ST=Bagmati, C=NP"
 ```
 
-To build from terminal:
+> Replace `YOUR_PASSWORD` with any password you choose. Keep the `.p12` file backed up safely — **if you lose it, you cannot publish updates to the Play Store.**
+
+---
+
+### Step 2 — Build the APK
 
 ```powershell
 .\gradlew.bat assembleRelease
 ```
 
-Release APK output:
+---
 
-```text
+### Step 3 — Find your APK
+
+```
 app/build/outputs/apk/release/app-release.apk
 ```
-
-There is also a helper script in the repo:
-
-```powershell
-.\apk.ps1
-```
-
----
-
-## Project Structure
-
-```text
-Bulk-IPO-Apply/
-|-- app/
-|   |-- src/main/
-|   |   |-- java/com/rohit/ipoapply/MainActivity.kt
-|   |   |-- res/drawable/
-|   |   |-- res/mipmap-anydpi-v26/
-|   |   `-- AndroidManifest.xml
-|-- gradle/
-|-- build.gradle.kts
-|-- settings.gradle.kts
-`-- README.md
-```
-
----
-
-## Notes
-
-- Saved account data is stored locally on the device.
-- Tokens are reused in memory during the app session where possible.
-- The app fetches the latest IPO list on launch when saved accounts exist.
-- Network errors are shown in-app with user-friendly messages.
 
 ---
 
