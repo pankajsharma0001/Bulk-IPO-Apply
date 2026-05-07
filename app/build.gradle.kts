@@ -28,27 +28,18 @@ android {
             storePassword = keystoreProperties.getProperty("storePassword", "")
             keyAlias = keystoreProperties.getProperty("keyAlias", "upload")
             keyPassword = keystoreProperties.getProperty("keyPassword", "")
-            enableV1Signing = true
+            enableV1Signing = false
             enableV2Signing = true
         }
     }
 
     buildTypes {
-        debug {
-            isDebuggable = false
-        }
-
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
-    }
-
-    dependenciesInfo {
-        includeInApk = false
-        includeInBundle = false
     }
 
     packaging {
