@@ -11,11 +11,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.rohit.ipoapply"
+    namespace = "com.rohit.bulkipoapply"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.rohit.ipoapply"
+        applicationId = "com.rohit.bulkipoapply"
         minSdk = 23
         targetSdk = 36
         versionCode = 1
@@ -24,7 +24,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file(keystoreProperties.getProperty("storeFile", "keystores/upload-keystore.jks"))
+            storeFile = rootProject.file(keystoreProperties.getProperty("storeFile", "keystore/key.p12"))
             storePassword = keystoreProperties.getProperty("storePassword", "")
             keyAlias = keystoreProperties.getProperty("keyAlias", "upload")
             keyPassword = keystoreProperties.getProperty("keyPassword", "")

@@ -1,4 +1,4 @@
-package com.rohit.ipoapply
+package com.rohit.bulkipoapply
 
 import android.app.Activity
 import android.app.AlertDialog

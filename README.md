@@ -65,13 +65,13 @@ This project avoids heavy frameworks and favors direct Android platform APIs. Mo
 
 Two secret files are **not included in the repo** and must be set up on every new machine:
 
-- `keystores/upload-keystore.p12` — the keystore file
+- `keystore/key.p12` — the keystore file
 - `keystore.properties` — the passwords and path for the keystore
 
 Create `keystore.properties` in the root of the project:
 
 ```properties
-storeFile=keystores/upload-keystore.p12
+storeFile=keystore/key.p12
 storePassword=your_password
 keyAlias=upload
 keyPassword=your_password
@@ -82,7 +82,7 @@ keyPassword=your_password
 ```powershell
 keytool -genkeypair `
   -v `
-  -keystore keystores/upload-keystore.p12 `
+  -keystore keystore/key.p12 `
   -storetype PKCS12 `
   -alias upload `
   -keyalg RSA `

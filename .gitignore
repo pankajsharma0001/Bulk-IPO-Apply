@@ -9,7 +9,7 @@ app/build/
 
 local.properties
 keystore.properties
-keystores/
+keystore/
 
 *.apk
 *.idsig
