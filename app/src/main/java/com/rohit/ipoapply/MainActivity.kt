@@ -7,12 +7,15 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.window.OnBackInvokedDispatcher
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -44,14 +47,30 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT
+            ) {
+                handleBackPressed()
+            }
+        }
         showHome()
         if (saved().length() > 0) loadIssuesHome()
     }
 
-    @Deprecated("Native back callback for this minSdk/no-AndroidX app")
-    override fun onBackPressed() {
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
+                handleBackPressed()
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun handleBackPressed() {
         if (backStack.isEmpty()) {
-            super.onBackPressed()
+            finish()
         } else {
             backStack.removeAt(backStack.size - 1).invoke()
         }
@@ -60,7 +79,7 @@ class MainActivity : Activity() {
     private fun showHome(issues: JSONArray? = null, ipoError: String = "") {
         backStack.clear()
         page()
-        appTitle("IPO Apply")
+        appTitle("Bulk IPO Apply")
 
         val list = saved()
         section("Accounts", if (list.length() == 0) "" else "${list.length()} saved")
