@@ -44,6 +44,12 @@ class MainActivity : Activity() {
     private val tokens = HashMap<String, String>()
 
     private data class SelectionHeader(val note: TextView, val mark: TextView)
+    private data class KittaControls(
+        val card: LinearLayout,
+        val detail: TextView,
+        val controls: LinearLayout,
+        val value: TextView
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -626,9 +632,20 @@ class MainActivity : Activity() {
         title("Review application")
         reviewIssueCard(issue, rows.length())
         section("Selected accounts", "${rows.length()} selected")
+        val kittaCards = ArrayList<KittaControls>()
+        var openKittaIndex = -1
+        fun setKittaOpen(index: Int) {
+            openKittaIndex = if (openKittaIndex == index) -1 else index
+            for (i in 0 until kittaCards.size) syncKittaCard(kittaCards[i], i == openKittaIndex)
+        }
         for (i in 0 until rows.length()) {
             val row = rows.getJSONObject(i)
-            accountSummaryCard(row.optString("name"), row.optString("username"))
+            val startKitta = row.optInt("appliedKitta", defaultKitta(issue))
+            row.put("appliedKitta", normalizedKitta(startKitta))
+            val card = accountKittaCard(row)
+            val cardIndex = kittaCards.size
+            card.card.setOnClickListener { setKittaOpen(cardIndex) }
+            kittaCards.add(card)
         }
         button("Submit application") { applyIssue(issueText, rows) }
         msg("")
@@ -662,7 +679,7 @@ class MainActivity : Activity() {
                         .put("customerId", a.getInt("customerId"))
                         .put("accountBranchId", a.getInt("accountBranchId"))
                         .put("accountTypeId", a.getInt("accountTypeId"))
-                        .put("appliedKitta", active.optString("minUnit", "10"))
+                        .put("appliedKitta", row.optInt("appliedKitta", defaultKitta(active)).toString())
                         .put("crnNumber", a.getString("crn"))
                         .put("transactionPIN", a.getString("pin"))
                         .put("companyShareId", id.toString())
@@ -1069,6 +1086,112 @@ class MainActivity : Activity() {
         })
         box.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         add(box, bottom = 8)
+    }
+
+    private fun accountKittaCard(row: JSONObject): KittaControls {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(15), dp(12), dp(15), dp(12))
+        box.background = press(Color.WHITE, Color.rgb(211, 218, 226), 12)
+        box.isClickable = true
+
+        val top = LinearLayout(this)
+        top.orientation = LinearLayout.HORIZONTAL
+        top.gravity = Gravity.CENTER_VERTICAL
+        val left = LinearLayout(this)
+        left.orientation = LinearLayout.VERTICAL
+        val name = TextView(this)
+        name.text = row.optString("name")
+        name.textSize = 16f
+        name.setTextColor(Color.rgb(20, 22, 26))
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        left.addView(name)
+        val detail = TextView(this)
+        detail.text = accountKittaDetail(row)
+        detail.textSize = 14f
+        detail.setTextColor(Color.rgb(88, 92, 99))
+        left.addView(detail, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, dp(3), 0, 0)
+        })
+        top.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        val hint = TextView(this)
+        hint.text = "Change"
+        hint.textSize = 12f
+        hint.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        hint.setTextColor(Color.rgb(20, 94, 72))
+        hint.setPadding(dp(9), dp(4), dp(9), dp(4))
+        hint.background = bg(Color.rgb(236, 248, 243), Color.rgb(190, 207, 201), 10)
+        top.addView(hint)
+        box.addView(top)
+
+        val controls = LinearLayout(this)
+        controls.orientation = LinearLayout.HORIZONTAL
+        controls.gravity = Gravity.CENTER_VERTICAL
+        controls.visibility = View.GONE
+        val minus = stepButton("-")
+        val value = TextView(this)
+        value.text = "${row.optInt("appliedKitta", 10)}"
+        value.textSize = 22f
+        value.gravity = Gravity.CENTER
+        value.setTextColor(Color.rgb(18, 77, 60))
+        value.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
+        val plus = stepButton("+")
+        controls.addView(minus, LinearLayout.LayoutParams(dp(48), dp(44)))
+        controls.addView(value, LinearLayout.LayoutParams(0, dp(44), 1f).apply {
+            setMargins(dp(10), 0, dp(10), 0)
+        })
+        controls.addView(plus, LinearLayout.LayoutParams(dp(48), dp(44)))
+        box.addView(controls, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, dp(12), 0, 0)
+        })
+
+        fun update(delta: Int) {
+            val current = row.optInt("appliedKitta", 10)
+            val next = normalizedKitta(current + delta)
+            row.put("appliedKitta", next)
+            value.text = next.toString()
+            detail.text = accountKittaDetail(row)
+        }
+        minus.setOnClickListener { update(-10) }
+        plus.setOnClickListener { update(10) }
+
+        add(box, bottom = 8)
+        return KittaControls(box, detail, controls, value)
+    }
+
+    private fun syncKittaCard(card: KittaControls, open: Boolean) {
+        card.controls.visibility = if (open) View.VISIBLE else View.GONE
+        card.card.background = if (open) {
+            bg(Color.rgb(236, 248, 243), Color.rgb(20, 94, 72), 12)
+        } else {
+            press(Color.WHITE, Color.rgb(211, 218, 226), 12)
+        }
+    }
+
+    private fun accountKittaDetail(row: JSONObject): String {
+        return "${row.optString("username")} - ${row.optInt("appliedKitta", 10)} kitta"
+    }
+
+    private fun stepButton(label: String): Button {
+        val b = Button(this)
+        b.text = label
+        b.textSize = 22f
+        b.isAllCaps = false
+        b.minHeight = dp(44)
+        b.setPadding(0, 0, 0, dp(2))
+        b.setTextColor(Color.WHITE)
+        b.background = press(Color.rgb(20, 94, 72), Color.rgb(17, 78, 61), 12, Color.rgb(17, 78, 61))
+        return b
+    }
+
+    private fun defaultKitta(issue: JSONObject): Int {
+        return normalizedKitta(issue.optInt("minUnit", 10))
+    }
+
+    private fun normalizedKitta(value: Int): Int {
+        val safe = value.coerceAtLeast(10)
+        return ((safe + 9) / 10) * 10
     }
 
     private fun resultSummary(issue: JSONObject, results: JSONArray) {
