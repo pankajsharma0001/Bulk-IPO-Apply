@@ -211,6 +211,9 @@ class MainActivity : Activity() {
         field("Bank", a.optString("bankName"))
         secretField("CRN", a.optString("crn"))
         secretField("PIN", a.optString("pin"))
+        button("Edit CRN / PIN", secondary = true) {
+            open({ showAccount(index) }) { showEditAccount(index) }
+        }
         button("Delete", danger = true) {
             val next = JSONArray()
             for (i in 0 until list.length()) if (i != index) next.put(list.getJSONObject(i))
@@ -220,6 +223,52 @@ class MainActivity : Activity() {
             }
         }
         msg("")
+    }
+
+    private fun showEditAccount(index: Int) {
+        val list = saved()
+        if (index >= list.length()) {
+            showSavedAccounts()
+            return
+        }
+        val a = list.getJSONObject(index)
+        page()
+        title("Edit account")
+        field("Username", a.optString("username", a.optString("demat").takeLast(8)))
+        field("BOID", a.optString("demat", a.optString("boid")))
+        field("Bank", a.optString("bankName"))
+        val crn = input("CRN number")
+        crn.setText(a.optString("crn"))
+        crn.setSelection(crn.text.length)
+        val pin = input("Transaction PIN", true)
+        pin.setText(a.optString("pin"))
+        pin.setSelection(pin.text.length)
+        button("Save changes") {
+            val crnValue = crn.text.toString().trim()
+            val pinValue = pin.text.toString().trim()
+            if (crnValue.isBlank() || pinValue.isBlank()) {
+                error("Enter CRN and transaction PIN")
+            } else {
+                updateAccountEditableInfo(index, crnValue, pinValue)
+                if (backStack.isNotEmpty()) backStack.removeAt(backStack.size - 1)
+                showAccount(index)
+            }
+        }
+        msg("")
+    }
+
+    private fun updateAccountEditableInfo(index: Int, crn: String, pin: String) {
+        val list = saved()
+        val next = JSONArray()
+        for (i in 0 until list.length()) {
+            val account = JSONObject(list.getJSONObject(i).toString())
+            if (i == index) {
+                account.put("crn", crn.trim())
+                account.put("pin", pin.trim())
+            }
+            next.put(account)
+        }
+        prefs.edit().putString("accounts", next.toString()).apply()
     }
 
     private fun confirmDelete(count: Int, yes: () -> Unit) {
