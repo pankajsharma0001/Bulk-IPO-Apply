@@ -3,5 +3,7 @@
     <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@drawable/launch_screen</item>
         <item name="android:colorAccent">#145E48</item>
+        <item name="android:statusBarColor">#E0E0E0</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

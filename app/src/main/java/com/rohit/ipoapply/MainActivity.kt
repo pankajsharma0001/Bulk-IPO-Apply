@@ -882,7 +882,7 @@ class MainActivity : Activity() {
     private fun page() {
         root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
-        root.setPadding(dp(16), dp(22), dp(16), dp(28))
+        root.setPadding(dp(16), dp(30), dp(16), dp(28))
         root.setBackgroundColor(Color.rgb(246, 248, 250))
         val scroll = ScrollView(this)
         scroll.setBackgroundColor(Color.rgb(246, 248, 250))
