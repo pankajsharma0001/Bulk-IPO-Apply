@@ -44,7 +44,7 @@ This project avoids heavy frameworks and favors direct Android platform APIs. Mo
   <table>
     <tr>
       <td align="center">
-        <img src="assets/home.jpg" width="280" alt="Simple Patro home screen" />
+        <img src="assets/home.jpg" width="280" alt="home screen" />
         <br />
         <sub><strong>Home</strong></sub>
       </td>
@@ -61,7 +61,7 @@ This project avoids heavy frameworks and favors direct Android platform APIs. Mo
 
 ---
 
-### Step 1 — Set up your signing files
+### Step 1 - Set up your signing files
 
 Two secret files are **not included in the repo** and must be set up on every new machine:
 
@@ -97,7 +97,13 @@ keytool -genkeypair `
 
 ---
 
-### Step 2 — Build the APK
+### Step 2 - Create a file local.properties in the project root
+  Put your Android SDK path in it, for example:  
+  ```powershell
+  sdk.dir=sdk.dir=C\:\\Users\\Pankaj\\AppData\\Local\\Android\\Sdk
+  ```
+
+### Step 3 - Build the APK
 
 ```powershell
 .\gradlew.bat assembleRelease
@@ -105,7 +111,7 @@ keytool -genkeypair `
 
 ---
 
-### Step 3 — Find your APK
+### Step 4 - Find your APK
 
 ```
 app/build/outputs/apk/release/app-release.apk
