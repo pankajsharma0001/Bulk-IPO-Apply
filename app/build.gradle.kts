@@ -18,7 +18,7 @@ android {
         applicationId = "com.rohit.bulkipoapply"
         minSdk = 23
         targetSdk = 36
-        versionCode = 3
+        versionCode = 5
         versionName = "1.1.2"
     }
 
