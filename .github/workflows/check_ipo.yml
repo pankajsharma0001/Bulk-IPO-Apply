@@ -1,0 +1,42 @@
+name: Check New IPO and Send Push Notification
+
+on:
+  schedule:
+    # Runs every 3 hours every day
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows running manually anytime from GitHub Actions tab
+
+jobs:
+  check-ipo:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Needed to commit and push updated seen_ipos.json
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install firebase-admin
+
+      - name: Run Multi-Source IPO Check
+        env:
+          FIREBASE_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          python scripts/check_and_notify.py
+
+      - name: Commit and push updated seen_ipos.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/seen_ipos.json
+          git commit -m "Update seen IPOs cache [skip ci]" || echo "No changes to commit"
+          git push

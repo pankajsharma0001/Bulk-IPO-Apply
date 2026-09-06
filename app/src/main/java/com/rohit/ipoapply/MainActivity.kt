@@ -9,6 +9,9 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
+import com.google.firebase.messaging.FirebaseMessaging
 import android.text.InputType
 import android.text.method.PasswordTransformationMethod
 import android.view.Gravity
@@ -53,13 +56,18 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        IpoNotificationHelper.createNotificationChannel(this)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             onBackInvokedDispatcher.registerOnBackInvokedCallback(
                 OnBackInvokedDispatcher.PRIORITY_DEFAULT
             ) {
                 handleBackPressed()
             }
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
         }
+        FirebaseMessaging.getInstance().subscribeToTopic("new_ipos")
         showHome()
         if (saved().length() > 0) loadIssuesHome()
     }
@@ -477,6 +485,7 @@ class MainActivity : Activity() {
         val issues = JSONObject(request2("POST", "$base/companyShare/applicableIssue/", issuePayload(), token).body)
             .optJSONArray("object") ?: JSONArray()
         prefs.edit().putString("issues", issues.toString()).apply()
+        IpoNotificationHelper.checkAndNotifyNewIssues(this, issues)
         return issues
     }
 

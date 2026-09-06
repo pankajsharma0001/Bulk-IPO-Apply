@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "180946607510",
+    "project_id": "bulk-ipo-apply-b9ba5",
+    "storage_bucket": "bulk-ipo-apply-b9ba5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:180946607510:android:73db9f09ae841973d151b7",
+        "android_client_info": {
+          "package_name": "com.rohit.bulkipoapply"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSHp7kjIwSrn85VJx7sdCDqD1mI5-xuTk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

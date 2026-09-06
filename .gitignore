@@ -21,3 +21,11 @@ keystore/
 captures/
 
 apk.ps1
+
+# Firebase service account keys (never commit private keys)
+*firebase*.json
+firebase-key.json
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
