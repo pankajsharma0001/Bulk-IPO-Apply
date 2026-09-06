@@ -18,8 +18,8 @@ android {
         applicationId = "com.rohit.bulkipoapply"
         minSdk = 23
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.1.2"
+        versionCode = 7
+        versionName = "1.2.0"
     }
 
     signingConfigs {
