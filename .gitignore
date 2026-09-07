@@ -22,9 +22,10 @@ captures/
 
 apk.ps1
 
-# Firebase service account keys (never commit private keys)
-*firebase*.json
+# Firebase service account private keys (never commit these!)
 firebase-key.json
+# NOTE: google-services.json is intentionally tracked (needed for Android build & CI)
+# NOTE: scripts/seen_ipos.json is intentionally tracked (deduplication cache for GitHub Actions)
 
 # Python bytecode & cache
 __pycache__/
