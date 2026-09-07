@@ -26,10 +26,11 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: 'scripts/requirements.txt'
 
       - name: Install dependencies
         run: |
-          pip install firebase-admin --quiet
+          pip install -r scripts/requirements.txt --quiet
 
       - name: Verify FIREBASE_KEY secret is set
         env:
