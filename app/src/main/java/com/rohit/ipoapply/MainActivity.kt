@@ -93,7 +93,7 @@ class MainActivity : Activity() {
     private fun showHome(issues: JSONArray? = null, ipoError: String = "") {
         backStack.clear()
         page()
-        appTitle("Bulk IPO Apply")
+        appTitle("Smart IPO")
 
         val list = saved()
         section("Accounts", if (list.length() == 0) "" else "${list.length()} saved")

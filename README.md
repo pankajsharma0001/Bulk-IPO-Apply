@@ -2,7 +2,7 @@
 
 <img src="app/icon-assets/icon.png" width="128"/>
 
-# IPO Apply
+# Smart IPO
 
 **A tiny native Android app for applying IPO from multiple accounts in one click.**
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-IPO Apply is a lightweight Android app built for fast MeroShare IPO workflows. It lets users save multiple MeroShare accounts, view available IPOs, check whether each account has already applied, and apply for selected accounts with fewer repeated steps.
+Smart IPO is a lightweight Android app built for fast MeroShare IPO workflows. It lets users save multiple MeroShare accounts, view available IPOs, check whether each account has already applied, and apply for selected accounts with fewer repeated steps.
 
 The app is intentionally built with a **minimum-size, native-first** philosophy:
 
